@@ -1,0 +1,82 @@
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #1a1a2e;
+  font-family: 'Arial', sans-serif;
+  color: #f4f4f9;
+  font-size: 18px;
+}
+
+.auth-container {
+  background-color: #0f3460;
+  padding: 60px;
+  border-radius: 15px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  width: 400px;
+}
+
+h1 {
+  margin-bottom: 30px;
+  color: #e94560;
+  font-size: 3rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+input[type='text'],
+input[type='password'],
+input[type='email'] {
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 10px;
+  border: none;
+  background-color: #16213e;
+  color: #f4f4f9;
+  font-size: 1.2rem;
+}
+
+input::placeholder {
+  color: #a8a8b3;
+  font-size: 1.2rem;
+}
+
+button {
+  padding: 15px;
+  background-color: #e94560;
+  color: #f4f4f9;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  font-size: 1.2rem;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  background-color: #c13c54;
+}
+
+.redirect {
+  margin-top: 25px;
+  color: #a8a8b3;
+  font-size: 1rem;
+}
+
+.redirect a {
+  color: #e94560;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-size: 1rem;
+}
+
+.redirect a:hover {
+  color: #f06280;
+}

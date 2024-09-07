@@ -23,7 +23,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db := database.New()
+	db, err := database.New(cfg.DB.Path)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	r := gin.New()
 
@@ -33,11 +36,13 @@ func main() {
 		middleware.Secure(""),
 	)
 
-	// main
-	r.StaticFile("/", "./public/index.html")
-
 	// static
+	r.StaticFile("/", "./public/index.html")
+	r.StaticFile("/signup", "./public/signup.html")
+	r.StaticFile("/login", "./public/login.html")
+
 	r.StaticFile("/favicon.ico", "./public/images/favicon.ico")
+
 	r.Static("/static", "./public")
 
 	// api
@@ -45,6 +50,8 @@ func main() {
 
 	api.GET("/ping", handlers.Ping)
 	api.POST("/register", handlers.Register(db))
+	api.POST("/login", handlers.Login(db))
+	api.POST("/signout", handlers.Signout(db))
 
 	api.GET("/ws", ws.HandleNewConn(db))
 
@@ -60,7 +67,7 @@ func main() {
 	}
 
 	log.Printf("Starting HTTP server on port %s", cfg.Server.Port)
-	go ws.RunBroadcast(db)
+	go ws.RunBroadcast()
 	err = srv.ListenAndServe()
 	if err != nil {
 		log.Printf("Failed to start server: %v", err)

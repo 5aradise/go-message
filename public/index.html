@@ -4,11 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Chat Room</title>
-    <link rel="stylesheet" href="static/css/styles.css" />
+    <link rel="stylesheet" href="/static/css/styles.css" />
   </head>
   <body>
     <div class="header">
       <h1>Go message</h1>
+      <div class="auth-area">
+        <button id="login-button">Log in</button>
+        <div id="user-box" style="display: none">
+          <span id="username-display"></span>
+          <a href="#" id="signout-link">Sign out</a>
+        </div>
+      </div>
     </div>
     <div class="chat-container">
       <div class="message-area" id="message-area"></div>
@@ -17,10 +24,12 @@
           type="text"
           id="message-input"
           placeholder="Type your message here..."
+          disabled
         />
-        <button id="send-button">Send</button>
+        <button id="send-button" disabled>Send</button>
       </div>
     </div>
-    <script src="static/js/script.js"></script>
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/script.js"></script>
   </body>
 </html>

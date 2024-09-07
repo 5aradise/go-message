@@ -1,53 +1,71 @@
 package handlers
 
 import (
+	"database/sql"
+	"log"
 	"net/http"
-	"unicode/utf8"
+	"strings"
 
 	"github.com/5aradise/go-message/internal/types"
-	"github.com/5aradise/go-message/pkg/random"
+	"github.com/5aradise/go-message/pkg/valid"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type registerReq struct {
-	Name string `json:"name" binding:"required"`
+	Name     string `json:"name" binding:"required"`
+	Password string `json:"password" binding:"required"`
+	Email    string `json:"email"`
 }
 
-type registerResp struct {
-	Key string `json:"key"`
-}
-
-func Register(uDB types.UserDB) gin.HandlerFunc {
+func Register(uDB types.UserCreator) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req registerReq
 		if err := c.BindJSON(&req); err != nil {
 			return
 		}
 
-		if !utf8.ValidString(req.Name) {
-			c.String(http.StatusBadRequest, "Error: invalid utf8 string")
+		if err := valid.Name(req.Name); err != nil {
+			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
 
-		_, ok := uDB.GetUserByName(req.Name)
-		if ok {
-			c.String(http.StatusBadRequest, "Error: user with this name already exist")
+		if err := valid.Password(req.Password); err != nil {
+			c.String(http.StatusBadRequest, err.Error())
 			return
 		}
 
-		key, err := random.String(64)
+		email := sql.NullString{String: req.Email}
+		if req.Email != "" {
+			if err := valid.Email(req.Email); err != nil {
+				c.String(http.StatusBadRequest, err.Error())
+				return
+			}
+			email.Valid = true
+		}
+
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
-			c.String(http.StatusInternalServerError, "Error: %s", err.Error())
+			log.Println(err)
+			c.String(http.StatusBadRequest, "internal error")
 			return
 		}
 
-		uDB.SetUser(req.Name, &types.User{
-			Name: req.Name,
-			Key:  key,
-		})
+		_, err = uDB.CreateUser(req.Name, hashedPassword, email)
+		if err != nil {
+			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+				if strings.Contains(err.Error(), "name") {
+					c.String(http.StatusBadRequest, "user with this name already exists")
+					return
+				}
+				c.String(http.StatusBadRequest, "user with this email already exists")
+				return
+			}
+			log.Println(err)
+			c.String(http.StatusBadRequest, "internal error")
+			return
+		}
 
-		c.JSON(http.StatusCreated, &registerResp{
-			Key: key,
-		})
+		c.String(http.StatusCreated, "user successfuly created")
 	}
 }

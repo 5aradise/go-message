@@ -1,6 +1,6 @@
 package types
 
 type Message struct {
-	Sender string
-	Body []byte
+	Sender string `json:"sender"`
+	Body   []byte `json:"body"`
 }
