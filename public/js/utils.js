@@ -54,3 +54,24 @@ const isValidEmail = (email) => {
   }
   return null;
 };
+
+const updateAuthorization = async () => {
+  const username = getCookie('name');
+  if (username) {
+    return true;
+  }
+  try {
+    const resp = await fetch(`http://${window.location.host}/api/refresh`, {
+      method: 'POST',
+    });
+    if (resp.ok) {
+      return true;
+    } else {
+      console.log(await resp.text());
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('An error occurred during updating access token.');
+  }
+  return false;
+};

@@ -7,13 +7,17 @@ import (
 	"time"
 
 	"github.com/5aradise/go-message/config"
+	"github.com/5aradise/go-message/internal/auth"
 	"github.com/5aradise/go-message/internal/database"
 	"github.com/5aradise/go-message/internal/handlers"
 	"github.com/5aradise/go-message/internal/middleware"
 	"github.com/5aradise/go-message/internal/ws"
+	"github.com/5aradise/go-message/pkg/jwt"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
+
+const APP_NAME = "go-message"
 
 func main() {
 	godotenv.Load()
@@ -28,7 +32,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	jwtService := jwt.New(cfg.JWT.Key, APP_NAME, time.Duration(cfg.Auth.AccessTokenMaxAge+5)*time.Second)
+
 	r := gin.New()
+	auth.SetAuthAndRefreshMaxAgeInSec(cfg.Auth.AccessTokenMaxAge, cfg.Auth.RefreshTokenMaxAge)
+
+	authMid := middleware.Auth(jwtService, db)
 
 	r.Use(
 		gin.Logger(),
@@ -50,10 +59,13 @@ func main() {
 
 	api.GET("/ping", handlers.Ping)
 	api.POST("/register", handlers.Register(db))
-	api.POST("/login", handlers.Login(db))
-	api.POST("/signout", handlers.Signout(db))
+	api.POST("/login", handlers.Login(db, jwtService))
 
-	api.GET("/ws", ws.HandleNewConn(db))
+	api.POST("/signout", authMid, handlers.Signout(db))
+
+	api.POST("/refresh", handlers.Refresh(db, jwtService))
+
+	api.GET("/ws", authMid, ws.HandleNewConn)
 
 	// no route
 	r.NoRoute(func(c *gin.Context) {

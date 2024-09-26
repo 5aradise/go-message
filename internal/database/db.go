@@ -15,7 +15,7 @@ func New(dsn string) (*Database, error) {
 		return nil, err
 	}
 
-	err = gormDB.AutoMigrate(&User{})
+	err = gormDB.AutoMigrate(&User{}, &RefreshToken{})
 	if err != nil {
 		return nil, err
 	}

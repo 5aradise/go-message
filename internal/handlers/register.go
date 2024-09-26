@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/5aradise/go-message/internal/types"
+	"github.com/5aradise/go-message/pkg/random"
 	"github.com/5aradise/go-message/pkg/valid"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -51,7 +52,13 @@ func Register(uDB types.UserCreator) gin.HandlerFunc {
 			return
 		}
 
-		_, err = uDB.CreateUser(req.Name, hashedPassword, email)
+		refreshToken, err := random.String(64)
+		if err != nil {
+			c.String(http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		_, err = uDB.CreateUser(req.Name, hashedPassword, email, refreshToken)
 		if err != nil {
 			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 				if strings.Contains(err.Error(), "name") {

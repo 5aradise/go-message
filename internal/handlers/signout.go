@@ -4,26 +4,22 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/5aradise/go-message/internal/auth"
+	"github.com/5aradise/go-message/internal/middleware"
 	"github.com/5aradise/go-message/internal/types"
 	"github.com/5aradise/go-message/internal/ws"
 	"github.com/gin-gonic/gin"
 )
 
-func Signout(uDB types.UserGetterByWsKey) gin.HandlerFunc {
+func Signout(uDB types.UserGetterByName) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		wsKey, err := c.Cookie("ws_key")
+		user, err := middleware.GetUser(c)
 		if err != nil {
-			c.String(http.StatusUnauthorized, "ws_key not found in cookies")
+			c.String(http.StatusUnauthorized, err.Error())
 			return
 		}
 
-		u, err := uDB.GetUserByWebsocketKey(wsKey)
-		if err != nil {
-			c.String(http.StatusUnauthorized, "wrong ws_key")
-			return
-		}
-
-		uConn, ok := ws.ChatUsers[u.Name]
+		uConn, ok := ws.ChatUsers[user.Name]
 		if ok {
 			err := uConn.Close()
 			if err != nil {
@@ -31,11 +27,11 @@ func Signout(uDB types.UserGetterByWsKey) gin.HandlerFunc {
 				c.String(http.StatusBadRequest, "user connection not found in chat")
 				return
 			}
-			delete(ws.ChatUsers, u.Name)
+			delete(ws.ChatUsers, user.Name)
 		}
 
-		c.SetCookie("ws_key", "", -1, "/", "", false, true)
-		c.SetCookie("name", "", -1, "/", "", false, false)
+		auth.UnsetAuthCookie(c)
+		auth.UnsetRefreshCookie(c)
 		c.String(http.StatusOK, "")
 	}
 }
