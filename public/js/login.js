@@ -25,7 +25,7 @@ const loginUser = async (event) => {
   };
 
   try {
-    const resp = await fetch(`http://${window.location.host}/api/login`, {
+    const resp = await fetch(`/api/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

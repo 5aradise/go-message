@@ -29,6 +29,9 @@ func Auth(jwtS types.SubGetter, uDB types.UserGetterByName) gin.HandlerFunc {
 			return
 		}
 
+		chatName, _ := auth.GetChatName(c)
+		user.ChatName = chatName
+
 		c.Set("user", user)
 
 		c.Next()

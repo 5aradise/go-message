@@ -1,34 +1,14 @@
-const messageInput = document.getElementById('message-input');
-const sendButton = document.getElementById('send-button');
-const messageArea = document.getElementById('message-area');
 const loginButton = document.getElementById('login-button');
+const signupButton = document.getElementById('signup-button');
 const usernameDisplay = document.getElementById('username-display');
 const userBox = document.getElementById('user-box');
 const signoutLink = document.getElementById('signout-link');
+const chatSetup = document.getElementById('chat-setup');
+const chatNameInput = document.getElementById('chat-name-input');
+const createChatButton = document.getElementById('create-chat-button');
+const connectChatButton = document.getElementById('connect-chat-button');
 
-let ws;
-const textDecoder = new TextDecoder();
-const senderMsgDiv = 0;
 let clientName = '';
-
-const initializeWebSocket = async () => {
-  ws = new WebSocket(`ws://${window.location.host}/api/ws`);
-  ws.onerror = async (err) => {
-    if (await updateAuthorization()) {
-      initializeWebSocket();
-    } else {
-      alert('Please log in.');
-    }
-  };
-  ws.binaryType = 'arraybuffer';
-  ws.onmessage = (event) => {
-    const data = new Uint8Array(event.data);
-    const divIndex = data.indexOf(senderMsgDiv);
-    const sender = textDecoder.decode(data.slice(0, divIndex));
-    const body = textDecoder.decode(data.slice(divIndex + 1));
-    addMessage(sender, body, false);
-  };
-};
 
 const authClient = async () => {
   const cookiesName = getCookie('name');
@@ -41,44 +21,14 @@ const authClient = async () => {
   clientName = cookiesName;
   usernameDisplay.textContent = clientName;
   loginButton.style.display = 'none';
+  signupButton.style.display = 'none';
   userBox.style.display = 'flex';
-  messageInput.disabled = false;
-  sendButton.disabled = false;
-  await initializeWebSocket();
-};
-
-const addMessage = (sender, body, isClient) => {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = 'message' + (isClient ? ' client' : '');
-
-  const senderDiv = document.createElement('div');
-  senderDiv.className = 'sender';
-  senderDiv.textContent = sender;
-
-  const textDiv = document.createElement('div');
-  textDiv.className = 'text';
-  textDiv.textContent = body;
-
-  messageDiv.appendChild(senderDiv);
-  messageDiv.appendChild(textDiv);
-
-  messageArea.appendChild(messageDiv);
-  messageArea.scrollTop = messageArea.scrollHeight;
-};
-
-const sendMessage = () => {
-  const msgText = messageInput.value.trim();
-  if (!msgText) {
-    return;
-  }
-  messageInput.value = '';
-  ws.send(msgText);
-  addMessage(clientName, msgText, true);
+  chatSetup.style.display = 'block';
 };
 
 const signout = async () => {
   try {
-    const resp = await fetch(`http://${window.location.host}/api/signout`, {
+    const resp = await fetch(`/api/signout`, {
       method: 'POST',
     });
 
@@ -102,15 +52,45 @@ loginButton.onclick = () => {
   window.location.href = '/login';
 };
 
+signupButton.onclick = () => {
+  window.location.href = '/signup';
+};
+
 signoutLink.onclick = signout;
 
-sendButton.onclick = sendMessage;
-
-messageInput.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter') {
-    sendMessage();
-    event.preventDefault();
+createChatButton.onclick = async () => {
+  const chatName = chatNameInput.value.trim();
+  if (!chatName) {
+    return;
   }
-});
+
+  try {
+    const resp = await fetch(`/api/chats`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name: chatName }),
+    });
+
+    if (!resp.ok) {
+      const errorText = await resp.text();
+      alert('Creating chat failed: ' + errorText);
+      return;
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('An error occurred during creating chat.');
+  }
+
+  window.location.href = `/chats/${chatName}`;
+};
+
+connectChatButton.onclick = () => {
+  const chatName = chatNameInput.value.trim();
+  if (chatName) {
+    window.location.href = `/chats/${chatName}`;
+  }
+};
 
 authClient();

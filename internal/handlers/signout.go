@@ -1,17 +1,15 @@
 package handlers
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/5aradise/go-message/internal/auth"
 	"github.com/5aradise/go-message/internal/middleware"
 	"github.com/5aradise/go-message/internal/types"
-	"github.com/5aradise/go-message/internal/ws"
 	"github.com/gin-gonic/gin"
 )
 
-func Signout(uDB types.UserGetterByName) gin.HandlerFunc {
+func Signout(uDB types.UserGetterByName, uDelete types.UserDeleter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, err := middleware.GetUser(c)
 		if err != nil {
@@ -19,19 +17,17 @@ func Signout(uDB types.UserGetterByName) gin.HandlerFunc {
 			return
 		}
 
-		uConn, ok := ws.ChatUsers[user.Name]
-		if ok {
-			err := uConn.Close()
-			if err != nil {
-				log.Println("signout: comm.close:", err)
-				c.String(http.StatusBadRequest, "user connection not found in chat")
-				return
-			}
-			delete(ws.ChatUsers, user.Name)
-		}
-
 		auth.UnsetAuthCookie(c)
 		auth.UnsetRefreshCookie(c)
+
+		if user.ChatName != "" {
+			err = uDelete.DeleteFromChat(user.ChatName, user.Name)
+			if err != nil {
+				c.String(http.StatusBadRequest, err.Error())
+				return
+			}
+		}
+
 		c.String(http.StatusOK, "")
 	}
 }

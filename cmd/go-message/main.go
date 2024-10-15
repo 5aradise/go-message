@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/5aradise/go-message/config"
@@ -32,12 +33,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	jwtService := jwt.New(cfg.JWT.Key, APP_NAME, time.Duration(cfg.Auth.AccessTokenMaxAge+5)*time.Second)
-
-	r := gin.New()
 	auth.SetAuthAndRefreshMaxAgeInSec(cfg.Auth.AccessTokenMaxAge, cfg.Auth.RefreshTokenMaxAge)
 
+	jwtService := jwt.New(cfg.JWT.Key, APP_NAME, time.Duration(cfg.Auth.AccessTokenMaxAge+5)*time.Second)
+
 	authMid := middleware.Auth(jwtService, db)
+
+	wsServer := ws.NewServer()
+
+	r := gin.New()
 
 	r.Use(
 		gin.Logger(),
@@ -45,14 +49,26 @@ func main() {
 		middleware.Secure(""),
 	)
 
+	publicPath := filepath.Join(".", "public")
+
 	// static
-	r.StaticFile("/", "./public/index.html")
-	r.StaticFile("/signup", "./public/signup.html")
-	r.StaticFile("/login", "./public/login.html")
+	r.StaticFile("/", filepath.Join(publicPath, "index.html"))
+	r.StaticFile("/signup", filepath.Join(publicPath, "signup.html"))
+	r.StaticFile("/login", filepath.Join(publicPath, "login.html"))
+	r.GET("/chats/:chatName",
+		func(c *gin.Context) {
+			chatName := c.Param("chatName")
+			if chatName == "" {
+				c.Redirect(http.StatusBadGateway, "/")
+				return
+			}
+			c.File(filepath.Join(publicPath, "chat.html"))
+		},
+	)
 
-	r.StaticFile("/favicon.ico", "./public/images/favicon.ico")
+	r.StaticFile("/favicon.ico", filepath.Join(publicPath, "images", "favicon.ico"))
 
-	r.Static("/static", "./public")
+	r.Static("/static", publicPath)
 
 	// api
 	api := r.Group("/api")
@@ -61,15 +77,17 @@ func main() {
 	api.POST("/register", handlers.Register(db))
 	api.POST("/login", handlers.Login(db, jwtService))
 
-	api.POST("/signout", authMid, handlers.Signout(db))
+	api.POST("/signout", authMid, handlers.Signout(db, wsServer))
 
 	api.POST("/refresh", handlers.Refresh(db, jwtService))
 
-	api.GET("/ws", authMid, ws.HandleNewConn)
+	api.POST("/chats", authMid, handlers.CreateChat(wsServer))
+	// TODO api.DELETE("/chats/:chatName", handlers.DeleteChat())
+	api.GET("/ws/:chatName", authMid, handlers.ConnectToChat(wsServer))
 
 	// no route
 	r.NoRoute(func(c *gin.Context) {
-		c.File("./public/404.html")
+		c.File(filepath.Join(publicPath, "404.html"))
 	})
 
 	srv := &http.Server{
@@ -79,7 +97,6 @@ func main() {
 	}
 
 	log.Printf("Starting HTTP server on port %s", cfg.Server.Port)
-	go ws.RunBroadcast()
 	err = srv.ListenAndServe()
 	if err != nil {
 		log.Printf("Failed to start server: %v", err)
