@@ -23,7 +23,21 @@ const initializeWebSocket = async (chatName) => {
   };
   ws.onmessage = (event) => {
     const message = JSON.parse(event.data);
-    addMessage(message.sender, message.body, false);
+    if (message instanceof Array) {
+      for (const msg of message) {
+        addMessage(
+          msg.sender,
+          msg.body,
+          new Date(msg.time).toLocaleTimeString()
+        );
+      }
+      return;
+    }
+    addMessage(
+      message.sender,
+      message.body,
+      new Date(message.time).toLocaleTimeString()
+    );
   };
 };
 
@@ -51,7 +65,7 @@ const getChatNameFromURL = () => {
   return pathArray[pathArray.length - 1];
 };
 
-const addMessage = (sender, body) => {
+const addMessage = (sender, body, time) => {
   const messageDiv = document.createElement('div');
   messageDiv.className = 'message' + (sender === clientName ? ' client' : '');
 
@@ -63,8 +77,13 @@ const addMessage = (sender, body) => {
   textDiv.className = 'text';
   textDiv.textContent = body;
 
+  const timeDiv = document.createElement('div');
+  timeDiv.className = 'time';
+  timeDiv.textContent = time;
+
   messageDiv.appendChild(senderDiv);
   messageDiv.appendChild(textDiv);
+  messageDiv.appendChild(timeDiv);
 
   messageArea.appendChild(messageDiv);
   messageArea.scrollTop = messageArea.scrollHeight;

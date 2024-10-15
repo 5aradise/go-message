@@ -20,6 +20,10 @@ type Config struct {
 		AccessTokenMaxAge  int
 		RefreshTokenMaxAge int
 	}
+	WS struct {
+		ReadBufferSize  int
+		WriteBufferSize int
+	}
 }
 
 func LoadFromEnv() (Config, error) {
@@ -56,6 +60,24 @@ func LoadFromEnv() (Config, error) {
 		return Config{}, err
 	}
 
+	wsReadBufSizeStr := os.Getenv("WS_READ_BUFFER_SIZE")
+	if refMaxAgeStr == "" {
+		return Config{}, errors.New("WS_READ_BUFFER_SIZE is not found in the enviroment")
+	}
+	wsReadBufSize, err := strconv.Atoi(wsReadBufSizeStr)
+	if err != nil {
+		return Config{}, err
+	}
+
+	wsWriteBufSizeStr := os.Getenv("WS_WRITE_BUFFER_SIZE")
+	if refMaxAgeStr == "" {
+		return Config{}, errors.New("WS_WRITE_BUFFER_SIZE is not found in the enviroment")
+	}
+	wsWriteBufSize, err := strconv.Atoi(wsWriteBufSizeStr)
+	if err != nil {
+		return Config{}, err
+	}
+
 	cfg := Config{}
 
 	cfg.Server.Port = port
@@ -63,6 +85,8 @@ func LoadFromEnv() (Config, error) {
 	cfg.JWT.Key = []byte(jwtKey)
 	cfg.Auth.AccessTokenMaxAge = accMaxAge
 	cfg.Auth.RefreshTokenMaxAge = refMaxAge
+	cfg.WS.ReadBufferSize = wsReadBufSize
+	cfg.WS.WriteBufferSize = wsWriteBufSize
 
 	return cfg, nil
 }

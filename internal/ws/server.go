@@ -6,19 +6,26 @@ import (
 	"log"
 	"net/http"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 type signal struct{}
 
 type Server struct {
-	chats map[string]*chat
-	mu    sync.RWMutex
+	upgrader websocket.Upgrader
+	chats    map[string]*chat
+	mu       sync.RWMutex
 }
 
-func NewServer() *Server {
+func NewServer(wsReadBufSize, wsWriteBufSize int) *Server {
 	s := &Server{
 		chats: make(map[string]*chat),
 		mu:    sync.RWMutex{},
+		upgrader: websocket.Upgrader{
+			ReadBufferSize:  wsReadBufSize,
+			WriteBufferSize: wsWriteBufSize,
+		},
 	}
 	return s
 }
@@ -43,7 +50,7 @@ func (s *Server) ConnectToChat(chatName, userName string, w http.ResponseWriter,
 	if !ok {
 		return fmt.Errorf("chat with name %s unfound", chatName)
 	}
-	return chat.CreateUser(userName, w, r)
+	return chat.CreateUser(userName, w, r, s.upgrader)
 }
 
 func (s *Server) DeleteFromChat(chatName, userName string) error {

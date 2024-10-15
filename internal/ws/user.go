@@ -1,13 +1,13 @@
 package ws
 
 import (
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/5aradise/go-message/internal/types"
 	"github.com/gorilla/websocket"
 )
-
-var upgrader = websocket.Upgrader{}
 
 type user struct {
 	chat       *chat
@@ -27,7 +27,7 @@ func NewUser(name string, ch *chat) *user {
 	return u
 }
 
-func (u *user) AddConn(w http.ResponseWriter, r *http.Request) (id int, err error) {
+func (u *user) AddConn(w http.ResponseWriter, r *http.Request, upgrader websocket.Upgrader) (id int, err error) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return 0, err
@@ -47,7 +47,7 @@ func (u *user) ListenConn(id int) {
 			}
 			return
 		}
-		u.chat.broadCh <- types.NewMessage(u.name, string(msg))
+		u.chat.broadCh <- types.NewMessage(u.name, string(msg), time.Now())
 	}
 }
 
@@ -58,6 +58,22 @@ func (u *user) ListenChat() {
 			u.chat.DeleteUser(u.name)
 			return
 		}
+	}
+}
+
+func (u *user) WriteSliceMsgsToConn(connId int, msgs []types.Message) {
+	conn := u.conns[connId]
+	if conn == nil {
+		log.Println("WriteSliceMsgsToConn: try to write to nil conn")
+		return
+	}
+
+	err := conn.WriteJSON(msgs)
+	if err != nil {
+		u.deleteConn(connId)
+	}
+	if u.connsCount == 0 {
+		u.chat.DeleteUser(u.name)
 	}
 }
 

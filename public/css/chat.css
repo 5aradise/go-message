@@ -91,12 +91,26 @@ body {
   max-width: 75%;
   word-wrap: break-word;
   color: #f4f4f9;
+  position: relative;
 }
 
 .message .sender {
   font-weight: bold;
   margin-bottom: 7px;
   color: #e94560;
+}
+
+.message .text {
+  margin-bottom: 5px;
+}
+
+.message .time {
+  font-size: 0.8em;
+  color: #a5a5a5;
+  text-align: right;
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
 }
 
 .message.client {

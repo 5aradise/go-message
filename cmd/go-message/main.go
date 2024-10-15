@@ -39,7 +39,7 @@ func main() {
 
 	authMid := middleware.Auth(jwtService, db)
 
-	wsServer := ws.NewServer()
+	wsServer := ws.NewServer(cfg.WS.ReadBufferSize, cfg.WS.WriteBufferSize)
 
 	r := gin.New()
 
